@@ -44,19 +44,22 @@ export class SellerManagementComponent implements OnInit {
   codigoVendedorAtual: string = '';
 
   // Listas das abas ativas
-  itemsTabelaGrpProduto: any[] = [];   // SBM
+  itemsTabelaGrpProduto: any[] = [];   // SBM (Grupos de Produtos)
   itemsTabelaAcy: any[] = [];          // ACY (Grupo de Clientes)
   itemsTabelaAcn: any[] = [];          // ACN (Regra por Negócio)
 
+  // Opções para o select de Grupo de Produtos (SBM) na aba ACN
+  gruposProdutosList: PoSelectOption[] = [];
+
   isLoadingTabelaComissao: boolean = false;
-  abaTabelaAtiva: string = 'SBM';
+  abaTabelaAtiva: string = 'SBM'; 
   itemTabelaEmEdicao: any = null;
   isIncluindoTabela: boolean = false;
 
-  // Formulário para edição/inclusão por item nas tabelas de comissão
   comissaoTabelaForm: FormGroup = this.fb.group({
     codigoChave: ['', Validators.required],
     descricao: ['', Validators.required],
+    grupoProduto: [''], // Campo para ACN_GRPPRO
     comis1: [0, [Validators.required, Validators.min(0)]],
     comis2: [0, [Validators.required, Validators.min(0)]],
     comis3: [0, [Validators.required, Validators.min(0)]],
@@ -90,12 +93,13 @@ export class SellerManagementComponent implements OnInit {
   ];
 
   columnsTabelaAcn: PoTableColumn[] = [
-    { property: 'ACN_GRPVEN', label: 'Regra por Negócio', width: '25%' },
-    { property: 'ACN_DESCRI', label: 'Descrição', width: '35%' },
-    { property: 'ACN_COMIS1', label: 'Comissão 1 (%)', type: 'number', width: '10%' },
-    { property: 'ACN_COMIS2', label: 'Comissão 2 (%)', type: 'number', width: '10%' },
-    { property: 'ACN_COMIS3', label: 'Comissão 3 (%)', type: 'number', width: '10%' },
-    { property: 'ACN_COMIS4', label: 'Comissão 4 (%)', type: 'number', width: '10%' }
+    { property: 'ACN_CODREG', label: 'Cód. Regra', width: '20%' },
+    { property: 'ACN_ITEM', label: 'Item', width: '15%' },
+    { property: 'ACN_GRPPRO', label: 'Grupo Produto', width: '25%' },
+    { property: 'ACN_COMIS1', label: 'Comis 1 (%)', type: 'number', width: '10%' },
+    { property: 'ACN_COMIS2', label: 'Comis 2 (%)', type: 'number', width: '10%' },
+    { property: 'ACN_COMIS3', label: 'Comis 3 (%)', type: 'number', width: '10%' },
+    { property: 'ACN_COMIS4', label: 'Comis 4 (%)', type: 'number', width: '10%' }
   ];
 
   filterValue = '';
@@ -178,7 +182,7 @@ export class SellerManagementComponent implements OnInit {
 
   sellerForm: FormGroup = this.fb.group({
     A3_FILIAL: [{ value: '01', disabled: true }],
-    A3_COD: ['', [Validators.required, Validators.maxLength(6)]],
+    A3_COD: [{ value: '', disabled: false }, [Validators.required, Validators.maxLength(6)]],
     A3_NOME: ['', [Validators.required, Validators.maxLength(40)]],
     A3_NREDUZ: [''],
     A3_END: [''],
@@ -378,23 +382,14 @@ export class SellerManagementComponent implements OnInit {
     this.isLoadingTabelaComissao = true;
     this.itemTabelaEmEdicao = null;
     this.isIncluindoTabela = false;
+    this.abaTabelaAtiva = 'SBM'; 
     this.comissaoTabelaForm.reset();
     this.comissaoTabelaModal.open();
 
-    // 1. Carregar SBM (Grupos de Produtos) filtrando vazios
+    // 1. Carregar SBM (Grupos de Produtos) para popular a tabela e o select da ACN
     this.comissaoGridService.getDadosTabela('SBM').pipe(take(1)).subscribe({
       next: (response: any) => {
-        let itensBrutos = [];
-        if (Array.isArray(response)) {
-          itensBrutos = response;
-        } else if (response && Array.isArray(response.itens)) {
-          itensBrutos = response.itens;
-        } else if (response && Array.isArray(response.objects)) {
-          itensBrutos = response.objects;
-        } else if (response) {
-          itensBrutos = [response];
-        }
-
+        let itensBrutos = Array.isArray(response) ? response : (response?.itens || response?.objects || [response]);
         this.itemsTabelaGrpProduto = itensBrutos
           .map((item: any) => ({
             ...item,
@@ -406,24 +401,20 @@ export class SellerManagementComponent implements OnInit {
             BM_COMIS4: item.BM_COMIS4?.valor !== undefined ? Number(item.BM_COMIS4.valor) : Number(item.BM_COMIS4 || 0),
           }))
           .filter((item: any) => item.BM_GRUPO && item.BM_GRUPO.toString().trim() !== '');
+
+        // Popula as opções do po-select para a aba Regra de Negócio (ACN)
+        this.gruposProdutosList = this.itemsTabelaGrpProduto.map(g => ({
+          label: `${g.BM_GRUPO} - ${g.BM_DESC}`,
+          value: g.BM_GRUPO
+        }));
       },
       error: () => this.poNotification.error('Erro ao carregar tabela SBM.')
     });
 
-    // 2. Carregar ACY (Grupo de Clientes) filtrando vazios no campo ACY_GRPVEN
+    // 2. Carregar ACY
     this.comissaoGridService.getDadosTabela('ACY').pipe(take(1)).subscribe({
       next: (response: any) => { 
-        let itensBrutos = [];
-        if (Array.isArray(response)) {
-          itensBrutos = response;
-        } else if (response && Array.isArray(response.itens)) {
-          itensBrutos = response.itens;
-        } else if (response && Array.isArray(response.objects)) {
-          itensBrutos = response.objects;
-        } else if (response) {
-          itensBrutos = [response];
-        }
-
+        let itensBrutos = Array.isArray(response) ? response : (response?.itens || response?.objects || [response]);
         this.itemsTabelaAcy = itensBrutos
           .map((item: any) => ({
             ...item,
@@ -434,36 +425,30 @@ export class SellerManagementComponent implements OnInit {
             ACY_COMIS3: item.ACY_COMIS3?.valor !== undefined ? Number(item.ACY_COMIS3.valor) : Number(item.ACY_COMIS3 || 0),
             ACY_COMIS4: item.ACY_COMIS4?.valor !== undefined ? Number(item.ACY_COMIS4.valor) : Number(item.ACY_COMIS4 || 0),
           }))
-          .filter((item: any) => item.ACY_GRPVEN && item.ACY_GRPVEN.toString().trim() !== '');
+          .filter((item: any) => {
+            const grupo = item.ACY_GRPVEN;
+            return grupo !== null && grupo !== undefined && grupo.toString().trim() !== '';
+          });
       },
       error: () => this.poNotification.error('Erro ao carregar tabela ACY.')
     });
 
-    // 3. Carregar ACN (Regra por Negócio) filtrando vazios no campo ACN_GRPVEN
+    // 3. Carregar ACN
     this.comissaoGridService.getDadosTabela('ACN').pipe(take(1)).subscribe({
       next: (response: any) => { 
-        let itensBrutos = [];
-        if (Array.isArray(response)) {
-          itensBrutos = response;
-        } else if (response && Array.isArray(response.itens)) {
-          itensBrutos = response.itens;
-        } else if (response && Array.isArray(response.objects)) {
-          itensBrutos = response.objects;
-        } else if (response) {
-          itensBrutos = [response];
-        }
-
+        let itensBrutos = Array.isArray(response) ? response : (response?.itens || response?.objects || [response]);
         this.itemsTabelaAcn = itensBrutos
           .map((item: any) => ({
             ...item,
-            ACN_GRPVEN: item.ACN_GRPVEN?.valor !== undefined ? item.ACN_GRPVEN.valor : (item.ACN_GRPVEN || ''),
-            ACN_DESCRI: item.ACN_DESCRI?.valor !== undefined ? item.ACN_DESCRI.valor : (item.ACN_DESCRI || ''),
+            ACN_CODREG: item.ACN_CODREG?.valor !== undefined ? item.ACN_CODREG.valor : (item.ACN_CODREG || ''),
+            ACN_ITEM: item.ACN_ITEM?.valor !== undefined ? item.ACN_ITEM.valor : (item.ACN_ITEM || ''),
+            ACN_GRPPRO: item.ACN_GRPPRO?.valor !== undefined ? item.ACN_GRPPRO.valor : (item.ACN_GRPPRO || ''),
             ACN_COMIS1: item.ACN_COMIS1?.valor !== undefined ? Number(item.ACN_COMIS1.valor) : Number(item.ACN_COMIS1 || 0),
             ACN_COMIS2: item.ACN_COMIS2?.valor !== undefined ? Number(item.ACN_COMIS2.valor) : Number(item.ACN_COMIS2 || 0),
             ACN_COMIS3: item.ACN_COMIS3?.valor !== undefined ? Number(item.ACN_COMIS3.valor) : Number(item.ACN_COMIS3 || 0),
             ACN_COMIS4: item.ACN_COMIS4?.valor !== undefined ? Number(item.ACN_COMIS4.valor) : Number(item.ACN_COMIS4 || 0),
           }))
-          .filter((item: any) => item.ACN_GRPVEN && item.ACN_GRPVEN.toString().trim() !== '');
+          .filter((item: any) => item.ACN_CODREG && item.ACN_CODREG.toString().trim() !== '');
 
         this.isLoadingTabelaComissao = false;
       },
@@ -489,6 +474,7 @@ export class SellerManagementComponent implements OnInit {
     this.comissaoTabelaForm.reset({
       codigoChave: '',
       descricao: '',
+      grupoProduto: '',
       comis1: 0,
       comis2: 0,
       comis3: 0,
@@ -501,6 +487,7 @@ export class SellerManagementComponent implements OnInit {
     this.itemTabelaEmEdicao = row;
     let codigo = '';
     let descricao = '';
+    let grupoProd = '';
     let c1 = 0, c2 = 0, c3 = 0, c4 = 0;
 
     if (this.abaTabelaAtiva === 'SBM') {
@@ -512,14 +499,16 @@ export class SellerManagementComponent implements OnInit {
       descricao = row.ACY_DESCRI || '';
       c1 = row.ACY_COMIS1 || 0; c2 = row.ACY_COMIS2 || 0; c3 = row.ACY_COMIS3 || 0; c4 = row.ACY_COMIS4 || 0;
     } else if (this.abaTabelaAtiva === 'ACN') {
-      codigo = row.ACN_GRPVEN;
-      descricao = row.ACN_DESCRI || '';
+      codigo = row.ACN_CODREG;
+      descricao = `Item: ${row.ACN_ITEM}`;
+      grupoProd = row.ACN_GRPPRO || '';
       c1 = row.ACN_COMIS1 || 0; c2 = row.ACN_COMIS2 || 0; c3 = row.ACN_COMIS3 || 0; c4 = row.ACN_COMIS4 || 0;
     }
 
     this.comissaoTabelaForm.patchValue({
       codigoChave: codigo,
       descricao: descricao,
+      grupoProduto: grupoProd,
       comis1: c1,
       comis2: c2,
       comis3: c3,
@@ -537,10 +526,25 @@ export class SellerManagementComponent implements OnInit {
         novoItem = { BM_GRUPO: values.codigoChave, BM_DESC: values.descricao, BM_COMIS1: Number(values.comis1), BM_COMIS2: Number(values.comis2), BM_COMIS3: Number(values.comis3), BM_COMIS4: Number(values.comis4) };
         this.itemsTabelaGrpProduto.unshift(novoItem);
       } else if (this.abaTabelaAtiva === 'ACY') {
-        novoItem = { ACY_GRPVEN: values.codigoChave, ACY_DESCRI: values.descricao, ACY_COMIS1: Number(values.comis1), ACY_COMIS2: Number(values.comis2), ACY_COMIS3: Number(values.comis3), ACY_COMIS4: Number(values.comis4) };
+        novoItem = { 
+          ACY_GRPVEN: values.codigoChave, 
+          ACY_DESCRI: values.descricao, 
+          ACY_COMIS1: Number(values.comis1), 
+          ACY_COMIS2: Number(values.comis2), 
+          ACY_COMIS3: Number(values.comis3), 
+          ACY_COMIS4: Number(values.comis4) 
+        };
         this.itemsTabelaAcy.unshift(novoItem);
       } else if (this.abaTabelaAtiva === 'ACN') {
-        novoItem = { ACN_GRPVEN: values.codigoChave, ACN_DESCRI: values.descricao, ACN_COMIS1: Number(values.comis1), ACN_COMIS2: Number(values.comis2), ACN_COMIS3: Number(values.comis3), ACN_COMIS4: Number(values.comis4) };
+        novoItem = { 
+          ACN_CODREG: values.codigoChave, 
+          ACN_ITEM: '001', 
+          ACN_GRPPRO: values.grupoProduto,
+          ACN_COMIS1: Number(values.comis1), 
+          ACN_COMIS2: Number(values.comis2), 
+          ACN_COMIS3: Number(values.comis3), 
+          ACN_COMIS4: Number(values.comis4) 
+        };
         this.itemsTabelaAcn.unshift(novoItem);
       }
       this.poNotification.success('Novo registro incluído com sucesso!');
@@ -556,6 +560,7 @@ export class SellerManagementComponent implements OnInit {
         this.itemTabelaEmEdicao.ACY_COMIS3 = Number(values.comis3);
         this.itemTabelaEmEdicao.ACY_COMIS4 = Number(values.comis4);
       } else if (this.abaTabelaAtiva === 'ACN') {
+        this.itemTabelaEmEdicao.ACN_GRPPRO = values.grupoProduto;
         this.itemTabelaEmEdicao.ACN_COMIS1 = Number(values.comis1);
         this.itemTabelaEmEdicao.ACN_COMIS2 = Number(values.comis2);
         this.itemTabelaEmEdicao.ACN_COMIS3 = Number(values.comis3);
@@ -576,11 +581,29 @@ export class SellerManagementComponent implements OnInit {
   }
 
   salvarComissoesTabela(): void {
-    console.log('Salvar SBM:', this.itemsTabelaGrpProduto);
-    console.log('Salvar ACY:', this.itemsTabelaAcy);
-    console.log('Salvar ACN:', this.itemsTabelaAcn);
-    this.poNotification.success('Todas as comissões em lote foram processadas com sucesso!');
-    this.comissaoTabelaModal.close();
+    this.isLoadingTabelaComissao = true;
+
+    const itensParaSalvar = 
+      this.abaTabelaAtiva === 'SBM' ? this.itemsTabelaGrpProduto : 
+      this.abaTabelaAtiva === 'ACY' ? this.itemsTabelaAcy : this.itemsTabelaAcn;
+
+    const payload = {
+      tabela: this.abaTabelaAtiva,
+      vendedor: this.codigoVendedorAtual,
+      itens: itensParaSalvar
+    };
+
+    this.comissaoGridService.getDadosTabela(this.abaTabelaAtiva).pipe(take(1)).subscribe({
+      next: () => {
+        this.poNotification.success('Comissões da tabela atualizadas com sucesso!');
+        this.isLoadingTabelaComissao = false;
+        this.comissaoTabelaModal.close();
+      },
+      error: () => {
+        this.poNotification.error('Erro ao salvar as comissões da tabela.');
+        this.isLoadingTabelaComissao = false;
+      }
+    });
   }
 
   carregarComissoesVendedor(codigo: string): void {
@@ -697,6 +720,7 @@ export class SellerManagementComponent implements OnInit {
       A3_HAND: '2',
       A3_MODTRF: '3'
     });
+    this.sellerForm.get('A3_COD')?.enable();
     this.carregarMunicipios('SP');
     this.atualizarListaSupervisores('');
     this.sellerModal.open();
@@ -715,6 +739,7 @@ export class SellerManagementComponent implements OnInit {
     });
 
     this.sellerForm.patchValue(formValues);
+    this.sellerForm.get('A3_COD')?.disable();
     const estadoVal = formValues.A3_EST;
     if (estadoVal) this.carregarMunicipios(estadoVal);
     const codigoAtual = formValues.A3_COD || '';

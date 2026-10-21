@@ -51,7 +51,7 @@
       <po-tab p-label="Dados Principais" [p-active]="true">
         <div class="po-row po-mt-2">
           <po-input class="po-md-3" formControlName="A3_FILIAL" p-label="Filial" [p-maxlength]="2"></po-input>
-          <po-input class="po-md-3" formControlName="A3_COD" p-label="Código" [p-maxlength]="6" [disabled]="isEditing"></po-input>
+          <po-input class="po-md-3" formControlName="A3_COD" p-label="Código" [p-maxlength]="6"></po-input>
           <po-select class="po-md-6" formControlName="A3_MSBLQL" p-label="Status (Bloqueio)" [p-options]="[{ label: 'Ativo', value: '2' }, { label: 'Bloqueado', value: '1' }]"></po-select>
         </div>
 
@@ -267,7 +267,20 @@
     <form [formGroup]="comissaoTabelaForm">
       <div class="po-row">
         <po-input class="po-md-3" formControlName="codigoChave" p-label="Código" [disabled]="!isIncluindoTabela" p-placeholder="Ex: 001"></po-input>
-        <po-input class="po-md-9" formControlName="descricao" p-label="Descrição" p-placeholder="Ex: Descrição do item"></po-input>
+        <po-input class="po-md-6" formControlName="descricao" p-label="Descrição" p-placeholder="Ex: Descrição do item"></po-input>
+        
+        <!-- Select populado dinamicamente com os grupos da SBM -->
+        <po-select 
+          *ngIf="abaTabelaAtiva === 'ACN'" 
+          class="po-md-3" 
+          formControlName="grupoProduto" 
+          p-label="Grupo Produto" 
+          p-field-label="label" 
+          p-field-value="value" 
+          [p-options]="gruposProdutosList" 
+          p-clean="true"
+          p-placeholder="Selecione">
+        </po-select>
       </div>
 
       <div class="po-row po-mt-2">
@@ -286,7 +299,7 @@
 
   <po-tabs>
     <!-- ABA 1: GRUPOS DE PRODUTOS (SBM) -->
-    <po-tab p-label="Grupos de Produtos" [p-active]="true" (p-click)="mudarAbaTabela('SBM')">
+    <po-tab p-label="Grupos Produtos" [p-active]="true" (p-click)="mudarAbaTabela('SBM')">
       <div class="po-row po-mb-2">
         <po-button p-label="Incluir Grupo de Produto" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('SBM')"></po-button>
       </div>
@@ -300,7 +313,7 @@
     </po-tab>
 
     <!-- ABA 2: GRUPO DE CLIENTES (ACY) -->
-    <po-tab p-label="Grupo de Clientes" (p-click)="mudarAbaTabela('ACY')">
+    <po-tab p-label="Grupo Clientes" (p-click)="mudarAbaTabela('ACY')">
       <div class="po-row po-mb-2">
         <po-button p-label="Incluir Grupo de Clientes" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('ACY')"></po-button>
       </div>
@@ -314,7 +327,7 @@
     </po-tab>
 
     <!-- ABA 3: REGRA POR NEGÓCIO (ACN) -->
-    <po-tab p-label="Regra por Negócio" (p-click)="mudarAbaTabela('ACN')">
+    <po-tab p-label="Regra Negócio" (p-click)="mudarAbaTabela('ACN')">
       <div class="po-row po-mb-2">
         <po-button p-label="Incluir Regra por Negócio" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('ACN')"></po-button>
       </div>
