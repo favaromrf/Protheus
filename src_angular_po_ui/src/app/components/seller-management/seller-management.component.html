@@ -1,0 +1,331 @@
+<div class="po-row po-mb-3">
+  <po-button 
+    class="po-md-3 po-p-0"
+    p-label="Novo Vendedor" 
+    p-icon="po-icon-user-add" 
+    p-kind="primary"
+    (p-click)="openModalForCreate()">
+  </po-button>
+</div>
+
+<div class="po-row po-mb-3">
+  <po-input
+    class="po-md-9"
+    [(ngModel)]="filterValue"
+    p-icon="po-icon-search"
+    p-clean="true"
+    p-placeholder="Pesquisar por qualquer informação (Código, Nome, CPF...)"
+    (p-change)="onFilterChange($event)">
+  </po-input>
+</div>
+
+<po-table
+  [p-items]="paginatedSellers()"
+  [p-columns]="columns"
+  [p-actions]="tableActions"
+  [p-sort]="true"
+  [p-striped]="true">
+</po-table>
+
+<div class="po-row po-mt-3 po-mb-3" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+  <div class="po-md-6 po-sm-12">
+    <span class="po-font-text-small" style="color: #6c757d;">
+      Mostrando {{ rangeStart() }} a {{ rangeEnd() }} de {{ totalFilteredItems() }} registros (Página {{ currentPage() }} de {{ totalPages() || 1 }})
+    </span>
+  </div>
+  
+  <div class="po-md-6 po-sm-12" style="text-align: right;">
+    <po-button p-label="Primeira" p-icon="po-icon-arrow-left" [p-disabled]="currentPage() === 1" (p-click)="goToFirstPage()"></po-button>
+    <po-button class="po-ml-1" p-label="Anterior" [p-disabled]="currentPage() === 1" (p-click)="goToPreviousPage()"></po-button>
+    <po-button class="po-ml-1" p-label="Próxima" [p-disabled]="currentPage() >= totalPages()" (p-click)="goToNextPage()"></po-button>
+    <po-button class="po-ml-1" p-label="Última" p-icon="po-icon-arrow-right" [p-disabled]="currentPage() >= totalPages()" (p-click)="goToLastPage()"></po-button>
+  </div>
+</div>
+
+<!-- Modal principal de Cadastro / Alteração -->
+<po-modal #sellerModal p-size="xl" [p-title]="isEditing ? 'Alterar Vendedor' : 'Novo Vendedor'">
+  <form [formGroup]="sellerForm">
+    <po-tabs>
+      
+      <!-- ABA 1: DADOS PRINCIPAIS -->
+      <po-tab p-label="Dados Principais" [p-active]="true">
+        <div class="po-row po-mt-2">
+          <po-input class="po-md-3" formControlName="A3_FILIAL" p-label="Filial" [p-maxlength]="2"></po-input>
+          <po-input class="po-md-3" formControlName="A3_COD" p-label="Código" [p-maxlength]="6" [disabled]="isEditing"></po-input>
+          <po-select class="po-md-6" formControlName="A3_MSBLQL" p-label="Status (Bloqueio)" [p-options]="[{ label: 'Ativo', value: '2' }, { label: 'Bloqueado', value: '1' }]"></po-select>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-8" formControlName="A3_NOME" p-label="Nome do Vendedor" [p-maxlength]="40"></po-input>
+          <po-input class="po-md-4" formControlName="A3_NREDUZ" p-label="Nome Reduzido" [p-maxlength]="25"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-4" formControlName="A3_CGC" p-label="CNPJ / CPF" [p-maxlength]="14"></po-input>
+          <po-input class="po-md-4" formControlName="A3_INSCR" p-label="Inscrição Estadual" [p-maxlength]="18"></po-input>
+          <po-input class="po-md-4" formControlName="A3_INSCRM" p-label="Inscrição Municipal" [p-maxlength]="18"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-select class="po-md-4" formControlName="A3_TIPO" p-label="Tipo Representante" [p-options]="[{ label: 'Interno', value: 'I' }, { label: 'Externo', value: 'E' }, { label: 'Parceiro', value: 'P' }]"></po-select>
+          <po-input class="po-md-4" formControlName="A3_CARGO" p-label="Cargo" [p-maxlength]="6"></po-input>
+          <po-select class="po-md-4" formControlName="A3_TIPVEND" p-label="Tipo Vendedor" [p-options]="[{ label: '1 - Normal', value: '1' }]"></po-select>
+        </div>
+      </po-tab>
+
+      <!-- ABA 2: ENDEREÇO E CONTATO -->
+      <po-tab p-label="Endereço & Contato">
+        <div class="po-row po-mt-2">
+          <po-input class="po-md-9" formControlName="A3_END" p-label="Endereço (Rua)" [p-maxlength]="40"></po-input>
+          <po-input class="po-md-3" formControlName="A3_CEP" p-label="CEP" [p-maxlength]="8"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-4" formControlName="A3_BAIRRO" p-label="Bairro" [p-maxlength]="20"></po-input>
+          
+          <div class="po-md-4">
+            <po-select formControlName="A3_EST" p-label="Estado (UF)" p-field-label="label" p-field-value="value" [p-options]="statesList"></po-select>
+          </div>
+
+          <div class="po-md-4">
+            <po-select formControlName="A3_MUN" p-label="Município" p-field-label="label" p-field-value="value" [p-options]="cidadesList" [p-disabled]="cidadesList.length === 0"></po-select>
+          </div>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-4" formControlName="A3_PAIS" p-label="País" [p-maxlength]="3"></po-input>
+          <po-input class="po-md-2" formControlName="A3_DDDTEL" p-label="DDD" [p-maxlength]="3"></po-input>
+          <po-input class="po-md-6" formControlName="A3_TEL" p-label="Telefone" [p-maxlength]="15"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-6" formControlName="A3_CEL" p-label="Celular" [p-maxlength]="15"></po-input>
+          <po-input class="po-md-6" formControlName="A3_EMAIL" p-label="E-Mail" [p-maxlength]="80"></po-input>
+        </div>
+      </po-tab>
+
+      <!-- ABA 3: COMISSÕES E HIERARQUIA -->
+      <po-tab p-label="Comissões & Hierarquia">
+        <div class="po-row po-mt-2">
+          <po-number class="po-md-3" formControlName="A3_COMIS" p-label="Comissão (%)"></po-number>
+          <po-number class="po-md-3" formControlName="A3_ALEMISS" p-label="% Pago Emissão"></po-number>
+          <po-number class="po-md-3" formControlName="A3_ALBAIXA" p-label="% Pago Baixa"></po-number>
+          <po-number class="po-md-3" formControlName="A3_DIA" p-label="Dia Pagto Comissão"></po-number>
+        </div>
+
+        <div class="po-row">
+          <po-number class="po-md-4" formControlName="A3_COMIS2" p-label="Comissão Supervisor (%)"></po-number>
+          <po-number class="po-md-4" formControlName="A3_COMIS3" p-label="Comissão Gerente (%)"></po-number>
+          <po-input class="po-md-4" formControlName="A3_GRPREP" p-label="Equipe de Vendas" [p-maxlength]="6"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-select class="po-md-6" formControlName="A3_SUPER" p-label="Código Supervisor" p-field-label="label" p-field-value="value" [p-options]="supervisoresList" p-clean="true"></po-select>
+          <po-select class="po-md-6" formControlName="A3_GEREN" p-label="Código Gerente" p-field-label="label" p-field-value="value" [p-options]="supervisoresList" p-clean="true"></po-select>
+        </div>
+      </po-tab>
+
+      <!-- ABA 4: OUTROS PARÂMETROS SA3 -->
+      <po-tab p-label="Outros Parâmetros">
+        <div class="po-row po-mt-2">
+          <po-input class="po-md-4" formControlName="A3_FORNECE" p-label="Cód. Fornecedor" [p-maxlength]="6"></po-input>
+          <po-input class="po-md-2" formControlName="A3_LOJA" p-label="Loja Forn." [p-maxlength]="2"></po-input>
+          <po-select class="po-md-6" formControlName="A3_GERASE2" p-label="Gera SE2?" [p-options]="[{ label: 'Sim', value: 'S' }, { label: 'Não', value: 'N' }]"></po-select>
+        </div>
+
+        <div class="po-row">
+          <po-input class="po-md-4" formControlName="A3_CODUSR" p-label="Cód. Usuário" [p-maxlength]="6"></po-input>
+          <po-input class="po-md-4" formControlName="A3_NUMRA" p-label="Cód. Funcionário (RA)" [p-maxlength]="6"></po-input>
+        </div>
+
+        <div class="po-row">
+          <po-select class="po-md-4" formControlName="A3_SINCTAF" p-label="Sincroniza Tarefa" [p-options]="[{ label: 'Sim', value: 'S' }, { label: 'Não', value: 'N' }]"></po-select>
+          <po-select class="po-md-4" formControlName="A3_SINCAGE" p-label="Sincroniza Agenda" [p-options]="[{ label: 'Sim', value: 'S' }, { label: 'Não', value: 'N' }]"></po-select>
+          <po-select class="po-md-4" formControlName="A3_SINCCON" p-label="Sincroniza Contato" [p-options]="[{ label: 'Sim', value: 'S' }, { label: 'Não', value: 'N' }]"></po-select>
+        </div>
+      </po-tab>
+
+    </po-tabs>
+  </form>
+
+  <po-modal-footer>
+    <po-button p-label="Salvar" p-kind="primary" [p-disabled]="sellerForm.invalid" (p-click)="saveSeller()"></po-button>
+    <po-button p-label="Cancelar" (p-click)="sellerModal.close()"></po-button>
+  </po-modal-footer>
+</po-modal>
+
+<!-- Modal de Ajustar Comissões -->
+<po-modal #viewSellerModal p-size="xl" p-title="Ajustar Comissões do Vendedor">
+  
+  <form [formGroup]="viewSellerForm">
+    <div class="po-row po-mt-2">
+      <po-input class="po-md-3" formControlName="code" p-label="Código"></po-input>
+      <po-input class="po-md-9" formControlName="name" p-label="Nome do Vendedor"></po-input>
+    </div>
+  </form>
+
+  <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+
+  <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+    <h4>{{ isEditingComissao ? 'Editar Comissão do Produto (PUT)' : 'Adicionar Nova Comissão (POST)' }}</h4>
+    
+    <form [formGroup]="comissaoForm">
+      <div class="po-row">
+        <po-input class="po-md-4" formControlName="ZZA_CODP" p-label="Cód. Produto" [disabled]="isEditingComissao" p-placeholder="Ex: 000456"></po-input>
+        <po-input class="po-md-6" formControlName="ZZA_DESCP" p-label="Descrição do Produto" p-placeholder="Ex: Produto Exemplo"></po-input>
+        <po-number class="po-md-2" formControlName="ZZA_COMIS" p-label="Comissão (%)"></po-number>
+      </div>
+    </form>
+
+    <div class="po-row po-mt-2">
+      <po-button 
+        p-kind="primary" 
+        [p-label]="isEditingComissao ? 'Salvar Alteração' : 'Adicionar Item'" 
+        [p-disabled]="comissaoForm.invalid" 
+        (p-click)="salvarComissao()">
+      </po-button>
+      
+      <po-button 
+        *ngIf="isEditingComissao" 
+        class="po-ml-1" 
+        p-label="Cancelar Edição" 
+        (p-click)="resetarFormComissao(viewSellerForm.get('name')?.value)">
+      </po-button>
+    </div>
+  </div>
+
+  <div *ngIf="vendedorComissoesDados && vendedorComissoesDados.itens && vendedorComissoesDados.itens.length > 0">
+    <h4>Itens Vinculados</h4>
+    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+      <thead>
+        <tr style="background-color: #f2f2f2;">
+          <th>Cód. Produto</th>
+          <th>Descrição do Produto</th>
+          <th>Comissão</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of vendedorComissoesDados.itens">
+          <td>{{ item.ZZA_CODP }}</td>
+          <td>{{ item.ZZA_DESCP }}</td>
+          <td>{{ item.ZZA_COMIS | number:'1.2-2' }}%</td>
+          <td>
+            <po-button p-icon="po-icon-edit" p-kind="tertiary" (p-click)="prepararEdicaoComissao(item)" p-tooltip="Editar"></po-button>
+            <po-button p-icon="po-icon-delete" p-kind="danger" (p-click)="excluirComissao(item.ZZA_CODP)" class="po-ml-1" p-tooltip="Excluir"></po-button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!vendedorComissoesDados || !vendedorComissoesDados.itens || vendedorComissoesDados.itens.length === 0" style="text-align: center; color: #777; padding: 20px;">
+    Nenhum item de comissão cadastrado para este vendedor.
+  </div>
+
+  <po-modal-footer>
+    <po-button p-label="Fechar" p-kind="primary" (p-click)="viewSellerModal.close()"></po-button>
+  </po-modal-footer>
+</po-modal>
+
+<!-- Modal de Copiar Perfil -->
+<po-modal #copyModal p-size="lg" p-title="Copiar Perfil de Comissão">
+  <form [formGroup]="copyProfileForm">
+    <div class="po-row po-mt-2">
+      <po-input class="po-md-4" formControlName="sourceCode" p-label="Código de Origem"></po-input>
+      <po-input class="po-md-8" formControlName="sourceName" p-label="Nome do Vendedor de Origem"></po-input>
+    </div>
+    <div class="po-row po-mt-3">
+      <po-select 
+        class="po-md-12" 
+        formControlName="targetSellerCode" 
+        p-label="Vendedor Destino (Copiar Para)" 
+        p-field-label="label" 
+        p-field-value="value" 
+        [p-options]="targetSellersList" 
+        p-placeholder="Selecione o vendedor de destino">
+      </po-select>
+    </div>
+  </form>
+  <po-modal-footer>
+    <po-button p-label="Confirmar Cópia" p-kind="primary" [p-disabled]="copyProfileForm.invalid" (p-click)="confirmCopyProfile()"></po-button>
+    <po-button p-label="Cancelar" (p-click)="copyModal.close()"></po-button>
+  </po-modal-footer>
+</po-modal>
+
+<!-- MODAL DE TABELA DE COMISSÕES POR GRUPOS E PRODUTOS -->
+<po-modal 
+  #comissaoTabelaModal 
+  p-size="xl" 
+  p-title="Tabela de Comissões" 
+  [p-primary-action]="{ action: salvarComissoesTabela, label: 'Salvar Todas as Comissões' }">
+  
+  <!-- Bloco de Edição / Inclusão Rápida -->
+  <div *ngIf="itemTabelaEmEdicao" style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #ddd;">
+    <h4>{{ isIncluindoTabela ? 'Incluir Nova Comissão' : 'Editar Comissões do Item' }} ({{ comissaoTabelaForm.get('codigoChave')?.value || 'Novo' }})</h4>
+    
+    <form [formGroup]="comissaoTabelaForm">
+      <div class="po-row">
+        <po-input class="po-md-3" formControlName="codigoChave" p-label="Código" [disabled]="!isIncluindoTabela" p-placeholder="Ex: 001"></po-input>
+        <po-input class="po-md-9" formControlName="descricao" p-label="Descrição" p-placeholder="Ex: Descrição do item"></po-input>
+      </div>
+
+      <div class="po-row po-mt-2">
+        <po-number class="po-md-3" formControlName="comis1" p-label="Comissão 1 (%)"></po-number>
+        <po-number class="po-md-3" formControlName="comis2" p-label="Comissão 2 (%)"></po-number>
+        <po-number class="po-md-3" formControlName="comis3" p-label="Comissão 3 (%)"></po-number>
+        <po-number class="po-md-3" formControlName="comis4" p-label="Comissão 4 (%)"></po-number>
+      </div>
+    </form>
+
+    <div class="po-row po-mt-2">
+      <po-button p-kind="primary" [p-label]="isIncluindoTabela ? 'Adicionar Linha' : 'Aplicar Alteração'" [p-disabled]="comissaoTabelaForm.invalid" (p-click)="salvarEdicaoTabelaItem()"></po-button>
+      <po-button class="po-ml-1" p-label="Cancelar" (p-click)="cancelarEdicaoTabelaItem()"></po-button>
+    </div>
+  </div>
+
+  <po-tabs>
+    <!-- ABA 1: GRUPOS DE PRODUTOS (SBM) -->
+    <po-tab p-label="Grupos de Produtos" [p-active]="true" (p-click)="mudarAbaTabela('SBM')">
+      <div class="po-row po-mb-2">
+        <po-button p-label="Incluir Grupo de Produto" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('SBM')"></po-button>
+      </div>
+      <po-table
+        [p-columns]="columnsTabelaGrpProduto"
+        [p-items]="itemsTabelaGrpProduto"
+        [p-loading]="isLoadingTabelaComissao"
+        [p-actions]="tableAcoesLinha"
+        [p-hide-table-search]="false">
+      </po-table>
+    </po-tab>
+
+    <!-- ABA 2: GRUPO DE CLIENTES (ACY) -->
+    <po-tab p-label="Grupo de Clientes" (p-click)="mudarAbaTabela('ACY')">
+      <div class="po-row po-mb-2">
+        <po-button p-label="Incluir Grupo de Clientes" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('ACY')"></po-button>
+      </div>
+      <po-table
+        [p-columns]="columnsTabelaAcy"
+        [p-items]="itemsTabelaAcy"
+        [p-loading]="isLoadingTabelaComissao"
+        [p-actions]="tableAcoesLinha"
+        [p-hide-table-search]="false">
+      </po-table>
+    </po-tab>
+
+    <!-- ABA 3: REGRA POR NEGÓCIO (ACN) -->
+    <po-tab p-label="Regra por Negócio" (p-click)="mudarAbaTabela('ACN')">
+      <div class="po-row po-mb-2">
+        <po-button p-label="Incluir Regra por Negócio" p-icon="po-icon po-icon-plus" p-kind="primary" (p-click)="prepararInclusaoTabela('ACN')"></po-button>
+      </div>
+      <po-table
+        [p-columns]="columnsTabelaAcn"
+        [p-items]="itemsTabelaAcn"
+        [p-loading]="isLoadingTabelaComissao"
+        [p-actions]="tableAcoesLinha"
+        [p-hide-table-search]="false">
+      </po-table>
+    </po-tab>
+  </po-tabs>
+
+</po-modal>

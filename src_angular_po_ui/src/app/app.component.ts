@@ -42,6 +42,7 @@ export class AppComponent {
     }
   }
   readonly menus: Array<PoMenuItem> = [
+    { label: 'Vendedores',        action: this.sellerClick.bind(this),  icon: 'po-icon-user',      shortLabel: 'Vendedores' },
     { label: 'Ajuda (Help)',      action: this.aboutClick.bind(this),  icon: 'po-icon-help',      shortLabel: 'Ajuda' },
     { label: 'Sair',              action: this.closeApp.bind(this),    icon: 'po-icon-exit',      shortLabel: 'Sair' }
   ];
@@ -50,6 +51,11 @@ export class AppComponent {
   private aboutClick() {
     this.router.navigate(['/', 'about']);
   }
+
+  private sellerClick() {
+    this.router.navigate(['/', 'Vendedor']);
+  }
+
 
   //Ao clicar no Sair
   private closeApp() {

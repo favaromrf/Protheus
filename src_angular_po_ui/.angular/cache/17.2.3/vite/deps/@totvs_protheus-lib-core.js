@@ -1,11 +1,4 @@
 import {
-  FormControlName,
-  FormGroupDirective,
-  FormsModule,
-  NgControlStatus,
-  NgControlStatusGroup,
-  NgForm,
-  NgModel,
   PoButtonComponent,
   PoButtonModule,
   PoCheckboxGroupComponent,
@@ -71,9 +64,6 @@ import {
   PoTooltipModule,
   PoWidgetComponent,
   PoWidgetModule,
-  ReactiveFormsModule,
-  UntypedFormBuilder,
-  Validators,
   poLanguageDefault,
   poLocaleDefault,
   poLocales,
@@ -81,24 +71,36 @@ import {
   poThemeDefaultDarkValues,
   poThemeDefaultFeedback,
   poThemeDefaultLightValues,
-  poThemeDefaultNeutrals,
+  poThemeDefaultNeutrals
+} from "./chunk-ZIGOLACP.js";
+import {
+  FormControlName,
+  FormGroupDirective,
+  FormsModule,
+  NgControlStatus,
+  NgControlStatusGroup,
+  NgForm,
+  NgModel,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  Validators,
   ɵNgNoValidate
-} from "./chunk-N2HZHUGC.js";
-import "./chunk-KKKFLYW4.js";
+} from "./chunk-OWSC32PB.js";
+import "./chunk-ELPQENMX.js";
 import {
   ActivatedRoute,
   Router,
   RouterLink,
   RouterModule
-} from "./chunk-3CUU5PYX.js";
-import "./chunk-5UJMFKFV.js";
+} from "./chunk-UL6CNEJN.js";
+import "./chunk-2ED4JPOD.js";
 import {
   HTTP_INTERCEPTORS,
   HttpClient,
   HttpErrorResponse,
   HttpHeaders,
   HttpParams
-} from "./chunk-RMCO7IQQ.js";
+} from "./chunk-ASKCBUZR.js";
 import {
   CommonModule,
   DatePipe,
@@ -108,14 +110,13 @@ import {
   NgSwitch,
   NgSwitchCase,
   NgTemplateOutlet
-} from "./chunk-POTI5HPL.js";
+} from "./chunk-V4ULTJM5.js";
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ContentChildren,
   Directive,
-  EMPTY,
   ElementRef,
   EventEmitter,
   Injectable,
@@ -124,31 +125,12 @@ import {
   InputFlags,
   IterableDiffers,
   NgModule,
-  Observable,
   Output,
-  Subject,
-  Subscription,
   TemplateRef,
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation$1,
-  __async,
-  __commonJS,
-  __spreadProps,
-  __spreadValues,
-  __toESM,
-  catchError,
-  concat,
-  delay,
-  from,
-  map,
-  merge,
-  of,
-  retry,
   setClassMetadata,
-  switchMap,
-  tap,
-  throwError,
   ɵsetClassDebugInfo,
   ɵɵInheritDefinitionFeature,
   ɵɵInputTransformsFeature,
@@ -198,11 +180,33 @@ import {
   ɵɵtwoWayListener,
   ɵɵtwoWayProperty,
   ɵɵviewQuery
-} from "./chunk-WNLIA6LZ.js";
+} from "./chunk-Z52XIZP5.js";
+import {
+  EMPTY,
+  Observable,
+  Subject,
+  Subscription,
+  __async,
+  __commonJS,
+  __spreadProps,
+  __spreadValues,
+  __toESM,
+  catchError,
+  concat,
+  delay,
+  from,
+  map,
+  merge,
+  of,
+  retry,
+  switchMap,
+  tap,
+  throwError
+} from "./chunk-BDQZZFGC.js";
 
-// node_modules/subsink/dist/subsink.js
+// ../node_modules/subsink/dist/subsink.js
 var require_subsink = __commonJS({
-  "node_modules/subsink/dist/subsink.js"(exports) {
+  "../node_modules/subsink/dist/subsink.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var isFunction = function(fn) {
@@ -246,9 +250,9 @@ var require_subsink = __commonJS({
   }
 });
 
-// node_modules/subsink/dist/index.js
+// ../node_modules/subsink/dist/index.js
 var require_dist = __commonJS({
-  "node_modules/subsink/dist/index.js"(exports) {
+  "../node_modules/subsink/dist/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var subsink_1 = require_subsink();
@@ -256,10 +260,10 @@ var require_dist = __commonJS({
   }
 });
 
-// node_modules/@totvs/protheus-lib-core/fesm2022/totvs-protheus-lib-core.mjs
+// ../node_modules/@totvs/protheus-lib-core/fesm2022/totvs-protheus-lib-core.mjs
 var import_subsink = __toESM(require_dist(), 1);
 
-// node_modules/@po-ui/ng-templates/fesm2022/po-ui-ng-templates.mjs
+// ../node_modules/@po-ui/ng-templates/fesm2022/po-ui-ng-templates.mjs
 function getBrowserLanguage() {
   return navigator.language || navigator["userLanguage"];
 }
@@ -11725,7 +11729,7 @@ var PoTemplatesModule = class _PoTemplatesModule {
   (typeof ngJitMode === "undefined" || ngJitMode) && ɵɵsetNgModuleScope(PoTemplatesModule, { imports: [PoComponentsModule, PoServicesModule], exports: [PoComponentsModule, PoServicesModule] });
 })();
 
-// node_modules/@totvs/protheus-lib-core/fesm2022/totvs-protheus-lib-core.mjs
+// ../node_modules/@totvs/protheus-lib-core/fesm2022/totvs-protheus-lib-core.mjs
 var _c02 = "@media (min-width: 1367px){.tooltip-bigscreen-adjust[_ngcontent-%COMP%]{padding-left:0}}";
 function ProPageBackgroundComponent_img_2_Template(rf, ctx) {
   if (rf & 1) {
