@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AppConfigService } from './app-config.service';
 
 export interface ItemComissao {
   ZZA_CODP: string;
@@ -18,18 +19,29 @@ export interface VendedorComissao {
   providedIn: 'root'
 })
 export class ComissoesService {
-  private apiUrl = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wscomiszza';
-  private apiUrl2 = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wscomiszza/copia';
+
+  private get apiUrl(): string {
+    return `${this.appConfigService.apiUrl}/wscomiszza`;
+  }
+
+  private get apiUrl2(): string {
+    return `${this.appConfigService.apiUrl}/wscomiszza/copia`;
+  }
 
   private getHeaders(): HttpHeaders {
-    const credentials = btoa('totvs.everton:T@tvs2026');
+    const auth = this.appConfigService.auth;
+    const credentials = btoa(`${auth?.usuario}:${auth?.senha}`);
+
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': 'Basic ' + credentials
     });
   }
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private appConfigService: AppConfigService
+  ) {}
 
   getVendedor(codigo: string): Observable<VendedorComissao> {
     return this.http.get<VendedorComissao>(`${this.apiUrl}/${codigo}`, { headers: this.getHeaders() });

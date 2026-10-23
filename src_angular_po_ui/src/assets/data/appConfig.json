@@ -1,5 +1,5 @@
 {
-  "apiUrl": "http://localhost:9595",
+  "apiUrl": "http://localhost:9595/rest",
   "auth": {
     "usuario": "admin",
     "senha": "xadrez392@D"

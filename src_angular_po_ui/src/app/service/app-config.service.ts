@@ -13,7 +13,7 @@ export class AppConfigService {
 
   loadConfig(): Promise<void> {
     return firstValueFrom(
-      this.http.get<AppConfig>('./assets/config.json')
+      this.http.get<AppConfig>('./assets/data/appConfig.json')
     ).then(data => {
       this.config = data;
     }).catch(error => {

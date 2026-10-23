@@ -2,17 +2,27 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { Seller, SellerResponse } from '../interface/seller.model';
+import { AppConfigService } from './app-config.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SellerService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wsrestsa3/vendedores'; 
+  private appConfigService = inject(AppConfigService); // Injetando o service de configuração
 
-  private getHeaders() {
+  private get apiUrl(): string {
+    // Pega a URL base do JSON e adiciona o endpoint específico do serviço (/wsrestsa3/vendedores)
+    return `${this.appConfigService.apiUrl}/wsrestsa3/vendedores`;
+  }
+
+  private getHeaders(): HttpHeaders {
+    // Pega as credenciais direto do AppConfigService
+    const auth = this.appConfigService.auth;
+    const credentials = btoa(`${auth?.usuario}:${auth?.senha}`);
+
     return new HttpHeaders({
-      'Authorization': 'Basic ' + btoa('totvs.everton:T@tvs2026'),
+      'Authorization': 'Basic ' + credentials,
       'Content-Type': 'application/json'
     });
   }
@@ -50,5 +60,4 @@ export class SellerService {
   updateSeller(code: string, seller: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${code}`, seller, { headers: this.getHeaders() });
   }
-
 }
