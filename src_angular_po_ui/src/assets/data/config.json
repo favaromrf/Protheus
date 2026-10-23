@@ -1,0 +1,7 @@
+{
+  "apiUrl": "http://localhost:9595",
+  "auth": {
+    "usuario": "admin",
+    "senha": "xadrez392@D"
+  }
+}

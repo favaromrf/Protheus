@@ -16,5 +16,6 @@
 			"label": "u_xxxx"
 		}
 	],
-	"lastProgramExecuted": "u_xxxx"
+	"lastProgramExecuted": "<cancel>",
+	"lastProgramArguments": []
 }

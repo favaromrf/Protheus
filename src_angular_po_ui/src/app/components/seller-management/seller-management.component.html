@@ -167,12 +167,32 @@
   <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
 
   <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-    <h4>{{ isEditingComissao ? 'Editar Comissão do Produto (PUT)' : 'Adicionar Nova Comissão (POST)' }}</h4>
+    <h4>{{ isEditingComissao ? 'Editar Comissão do Produto' : 'Adicionar Nova Comissão' }}</h4>
     
     <form [formGroup]="comissaoForm">
       <div class="po-row">
-        <po-input class="po-md-4" formControlName="ZZA_CODP" p-label="Cód. Produto" [disabled]="isEditingComissao" p-placeholder="Ex: 000456"></po-input>
-        <po-input class="po-md-6" formControlName="ZZA_DESCP" p-label="Descrição do Produto" p-placeholder="Ex: Produto Exemplo"></po-input>
+        <!-- Select usando o array filtrado -->
+        <po-select 
+          class="po-md-4" 
+          formControlName="ZZA_CODP" 
+          p-label="Cód. Produto" 
+          [p-disabled]="isEditingComissao" 
+          p-field-label="label" 
+          p-field-value="value"
+          [p-options]="produtosNaoVinculados"
+          p-placeholder="Selecione o produto"
+          (p-change)="onProdutoSelecionado($event)">
+        </po-select>
+
+        <!-- Descrição preenchida automaticamente e bloqueada para edição -->
+        <po-input 
+          class="po-md-6" 
+          formControlName="ZZA_DESCP" 
+          p-label="Descrição do Produto" 
+          [disabled]="true" 
+          p-placeholder="Preenchido automaticamente">
+        </po-input>
+
         <po-number class="po-md-2" formControlName="ZZA_COMIS" p-label="Comissão (%)"></po-number>
       </div>
     </form>
@@ -196,27 +216,14 @@
 
   <div *ngIf="vendedorComissoesDados && vendedorComissoesDados.itens && vendedorComissoesDados.itens.length > 0">
     <h4>Itens Vinculados</h4>
-    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-      <thead>
-        <tr style="background-color: #f2f2f2;">
-          <th>Cód. Produto</th>
-          <th>Descrição do Produto</th>
-          <th>Comissão</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of vendedorComissoesDados.itens">
-          <td>{{ item.ZZA_CODP }}</td>
-          <td>{{ item.ZZA_DESCP }}</td>
-          <td>{{ item.ZZA_COMIS | number:'1.2-2' }}%</td>
-          <td>
-            <po-button p-icon="po-icon-edit" p-kind="tertiary" (p-click)="prepararEdicaoComissao(item)" p-tooltip="Editar"></po-button>
-            <po-button p-icon="po-icon-delete" p-kind="danger" (p-click)="excluirComissao(item.ZZA_CODP)" class="po-ml-1" p-tooltip="Excluir"></po-button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Tabela moderna em PO UI substituindo a tabela HTML antiga -->
+    <po-table
+      class="po-mt-2"
+      [p-columns]="columnsItensVinculados"
+      [p-items]="vendedorComissoesDados.itens"
+      [p-actions]="tableAcoesItensVinculados"
+      [p-striped]="true">
+    </po-table>
   </div>
 
   <div *ngIf="!vendedorComissoesDados || !vendedorComissoesDados.itens || vendedorComissoesDados.itens.length === 0" style="text-align: center; color: #777; padding: 20px;">
@@ -258,7 +265,7 @@
   #comissaoTabelaModal 
   p-size="xl" 
   p-title="Tabela de Comissões" 
-  [p-primary-action]="{ action: salvarComissoesTabela, label: 'Salvar Todas as Comissões' }">
+  [p-primary-action]="{ action: salvarComissoesTabela, label: 'Sair' }">
   
   <!-- Bloco de Edição / Inclusão Rápida -->
   <div *ngIf="itemTabelaEmEdicao" style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #ddd;">

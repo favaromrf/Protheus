@@ -8,7 +8,8 @@ import {
   PoTableAction, 
   PoNotificationService, 
   PoModalComponent, 
-  PoSelectOption 
+  PoSelectOption,
+  PoDialogService
 } from '@po-ui/ng-components';
 import { SellerService } from '../../service/seller.service';
 import { Seller } from '../../interface/seller.model';
@@ -28,6 +29,7 @@ export class SellerManagementComponent implements OnInit {
   private comissoesService = inject(ComissoesService);
   private comissaoGridService = inject(ComissaoService);
   private poNotification = inject(PoNotificationService);
+  private poDialog = inject(PoDialogService);
   private fb = inject(FormBuilder);
   private municipioService = inject(MunicipioService);
 
@@ -51,6 +53,12 @@ export class SellerManagementComponent implements OnInit {
   // Opções para o select de Grupo de Produtos (SBM) na aba ACN
   gruposProdutosList: PoSelectOption[] = [];
 
+  // Lista completa de produtos vindos da tabela DES da API
+  produtosList: PoSelectOption[] = [];
+
+  // Lista filtrada exibida no po-select (remove os já vinculados)
+  produtosNaoVinculados: PoSelectOption[] = [];
+
   isLoadingTabelaComissao: boolean = false;
   abaTabelaAtiva: string = 'SBM'; 
   itemTabelaEmEdicao: any = null;
@@ -59,7 +67,7 @@ export class SellerManagementComponent implements OnInit {
   comissaoTabelaForm: FormGroup = this.fb.group({
     codigoChave: ['', Validators.required],
     descricao: ['', Validators.required],
-    grupoProduto: [''], // Campo para ACN_GRPPRO
+    grupoProduto: [''], 
     comis1: [0, [Validators.required, Validators.min(0)]],
     comis2: [0, [Validators.required, Validators.min(0)]],
     comis3: [0, [Validators.required, Validators.min(0)]],
@@ -72,6 +80,28 @@ export class SellerManagementComponent implements OnInit {
       icon: 'po-icon po-icon-edit',
       action: (row: any) => this.prepararEdicaoTabelaItem(row)
     }
+  ];
+
+  // Ações da nova tabela PO UI de itens vinculados
+  tableAcoesItensVinculados: PoTableAction[] = [
+    {
+      action: (row: ItemComissao) => this.prepararEdicaoComissao(row),
+      icon: 'po-icon po-icon-edit',
+      label: 'Editar Comissão'
+    },
+    {
+      action: (row: ItemComissao) => this.excluirComissao(row.ZZA_CODP),
+      icon: 'po-icon po-icon-delete',
+      label: 'Excluir Comissão',
+      type: 'danger'
+    }
+  ];
+
+  // Colunas da nova tabela PO UI de itens vinculados
+  columnsItensVinculados: PoTableColumn[] = [
+    { property: 'ZZA_CODP', label: 'Cód. Produto', width: '20%' },
+    { property: 'ZZA_DESCP', label: 'Descrição do Produto', width: '50%' },
+    { property: 'ZZA_COMIS', label: 'Comissão (%)', type: 'number', format: '1.2-2', width: '20%' }
   ];
 
   columnsTabelaGrpProduto: PoTableColumn[] = [
@@ -132,8 +162,8 @@ export class SellerManagementComponent implements OnInit {
     const search = this.filterSignal().toLowerCase().trim();
     const list = this.sellers();
     if (!search) return list;
-    return list.filter(item => {
-      return Object.values(item).some(val => {
+    return list.filter((item: any) => {
+      return Object.values(item).some((val: any) => {
         if (val === null || val === undefined) return false;
         const actualVal = typeof val === 'object' && 'valor' in val ? val.valor : val;
         return actualVal?.toString().toLowerCase().includes(search);
@@ -283,7 +313,7 @@ export class SellerManagementComponent implements OnInit {
   comissaoForm: FormGroup = this.fb.group({
     ZZA_DESCV: [''],
     ZZA_CODP: ['', [Validators.required]],
-    ZZA_DESCP: ['', [Validators.required]],
+    ZZA_DESCP: [{ value: '', disabled: true }, [Validators.required]],
     ZZA_COMIS: [0, [Validators.required]]
   });
 
@@ -296,7 +326,7 @@ export class SellerManagementComponent implements OnInit {
   ngOnInit(): void {
     this.loadSellers();
 
-    this.sellerForm.get('A3_EST')?.valueChanges.subscribe((estadoSigla) => {
+    this.sellerForm.get('A3_EST')?.valueChanges.subscribe((estadoSigla: any) => {
       const siglaVal = typeof estadoSigla === 'object' && estadoSigla !== null && 'valor' in estadoSigla ? (estadoSigla as any).valor : estadoSigla;
       if (siglaVal) {
         this.carregarMunicipios(siglaVal);
@@ -310,10 +340,67 @@ export class SellerManagementComponent implements OnInit {
     if (estadoInicial) this.carregarMunicipios(estadoInicial);
   }
 
+  carregarListaProdutosDES(): void {
+    this.comissaoGridService.getDadosTabela('DES', 1, 500).pipe(take(1)).subscribe({
+      next: (response: any) => {
+        let itensBrutos = [];
+        
+        if (Array.isArray(response)) {
+          itensBrutos = response;
+        } else if (response?.itens) {
+          itensBrutos = response.itens;
+        } else if (response?.objects) {
+          itensBrutos = response.objects;
+        } else if (response?.data) {
+          itensBrutos = response.data;
+        } else {
+          itensBrutos = [response];
+        }
+
+        this.produtosList = itensBrutos.map((item: any) => {
+          const codigo = String(item.B1_COD ?? '').trim();
+          const descricao = String(item.B1_DESC ?? '').trim();
+
+          return {
+            label: `${codigo} - ${descricao}`,
+            value: codigo,
+            descricao: descricao
+          };
+        }).filter((p: any) => p.value !== '');
+
+        this.atualizarProdutosNaoVinculados();
+      },
+      error: (err: any) => {
+        console.error('Erro ao carregar produtos DES:', err);
+        this.poNotification.error('Erro ao carregar a lista de produtos.');
+      }
+    });
+  }
+
+  atualizarProdutosNaoVinculados(): void {
+    const itensVinculados = this.vendedorComissoesDados?.itens || [];
+    const codigosVinculados = new Set(itensVinculados.map((item: any) => String(item.ZZA_CODP).trim()));
+
+    this.produtosNaoVinculados = this.produtosList.filter(
+      (prod: any) => !codigosVinculados.has(String(prod.value).trim())
+    );
+  }
+
+  onProdutoSelecionado(codigoProduto: string): void {
+    const produtoEncontrado = (this.produtosList as any[]).find((p: any) => String(p.value) === String(codigoProduto));
+    if (produtoEncontrado) {
+      this.comissaoForm.patchValue({
+        ZZA_DESCP: produtoEncontrado.descricao || ''
+      });
+    } else {
+      this.comissaoForm.patchValue({ ZZA_DESCP: '' });
+    }
+  }
+
   carregarMunicipios(estado: string): void {
     this.municipioService.getMunicipios(estado).subscribe({
-      next: (response) => {
-        this.cidadesList = response.municipios.map(item => ({ label: item.municipio, value: item.municipio }));
+      next: (response: any) => {
+        this.cidadesList = response.municipios.map((item: any) => ({ label: item.municipio, value: item.municipio }));
       },
       error: () => {
         this.poNotification.error('Erro ao carregar a lista de municípios.');
@@ -324,11 +411,11 @@ export class SellerManagementComponent implements OnInit {
 
   atualizarListaSupervisores(codigoAtual: string = ''): void {
     this.supervisoresList = this.sellers()
-      .filter(s => {
+      .filter((s: any) => {
         const cod = s.A3_COD?.valor || s.code;
         return cod !== codigoAtual;
       })
-      .map(s => {
+      .map((s: any) => {
         const cod = s.A3_COD?.valor || s.code;
         const nome = s.A3_NOME?.valor || s.name;
         return { label: `${cod} - ${nome}`, value: cod };
@@ -337,9 +424,9 @@ export class SellerManagementComponent implements OnInit {
 
   loadSellers(): void {
     this.sellerService.getSellers().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response && response.items) {
-          const mapped = response.items.map(item => ({
+          const mapped = response.items.map((item: any) => ({
             ...item,
             code: item.A3_COD?.valor || '',
             name: item.A3_NOME?.valor || '',
@@ -371,6 +458,7 @@ export class SellerManagementComponent implements OnInit {
     this.viewSellerForm.patchValue({ code, name });
     
     this.resetarFormComissao(name);
+    this.carregarListaProdutosDES();
     this.carregarComissoesVendedor(code);
 
     this.viewSellerModal.open();
@@ -386,7 +474,13 @@ export class SellerManagementComponent implements OnInit {
     this.comissaoTabelaForm.reset();
     this.comissaoTabelaModal.open();
 
-    // 1. Carregar SBM (Grupos de Produtos) para popular a tabela e o select da ACN
+    this.carregarDadosAbasTabela();
+  }
+
+  carregarDadosAbasTabela(): void {
+    this.isLoadingTabelaComissao = true;
+
+    // 1. Carregar SBM
     this.comissaoGridService.getDadosTabela('SBM').pipe(take(1)).subscribe({
       next: (response: any) => {
         let itensBrutos = Array.isArray(response) ? response : (response?.itens || response?.objects || [response]);
@@ -402,8 +496,7 @@ export class SellerManagementComponent implements OnInit {
           }))
           .filter((item: any) => item.BM_GRUPO && item.BM_GRUPO.toString().trim() !== '');
 
-        // Popula as opções do po-select para a aba Regra de Negócio (ACN)
-        this.gruposProdutosList = this.itemsTabelaGrpProduto.map(g => ({
+        this.gruposProdutosList = this.itemsTabelaGrpProduto.map((g: any) => ({
           label: `${g.BM_GRUPO} - ${g.BM_DESC}`,
           value: g.BM_GRUPO
         }));
@@ -425,10 +518,7 @@ export class SellerManagementComponent implements OnInit {
             ACY_COMIS3: item.ACY_COMIS3?.valor !== undefined ? Number(item.ACY_COMIS3.valor) : Number(item.ACY_COMIS3 || 0),
             ACY_COMIS4: item.ACY_COMIS4?.valor !== undefined ? Number(item.ACY_COMIS4.valor) : Number(item.ACY_COMIS4 || 0),
           }))
-          .filter((item: any) => {
-            const grupo = item.ACY_GRPVEN;
-            return grupo !== null && grupo !== undefined && grupo.toString().trim() !== '';
-          });
+          .filter((item: any) => item.ACY_GRPVEN && item.ACY_GRPVEN.toString().trim() !== '');
       },
       error: () => this.poNotification.error('Erro ao carregar tabela ACY.')
     });
@@ -519,59 +609,65 @@ export class SellerManagementComponent implements OnInit {
   salvarEdicaoTabelaItem(): void {
     if (this.comissaoTabelaForm.invalid) return;
     const values = this.comissaoTabelaForm.getRawValue();
+    let payload: any = {};
 
-    if (this.isIncluindoTabela) {
-      let novoItem: any = {};
-      if (this.abaTabelaAtiva === 'SBM') {
-        novoItem = { BM_GRUPO: values.codigoChave, BM_DESC: values.descricao, BM_COMIS1: Number(values.comis1), BM_COMIS2: Number(values.comis2), BM_COMIS3: Number(values.comis3), BM_COMIS4: Number(values.comis4) };
-        this.itemsTabelaGrpProduto.unshift(novoItem);
-      } else if (this.abaTabelaAtiva === 'ACY') {
-        novoItem = { 
-          ACY_GRPVEN: values.codigoChave, 
-          ACY_DESCRI: values.descricao, 
-          ACY_COMIS1: Number(values.comis1), 
-          ACY_COMIS2: Number(values.comis2), 
-          ACY_COMIS3: Number(values.comis3), 
-          ACY_COMIS4: Number(values.comis4) 
-        };
-        this.itemsTabelaAcy.unshift(novoItem);
-      } else if (this.abaTabelaAtiva === 'ACN') {
-        novoItem = { 
-          ACN_CODREG: values.codigoChave, 
-          ACN_ITEM: '001', 
-          ACN_GRPPRO: values.grupoProduto,
-          ACN_COMIS1: Number(values.comis1), 
-          ACN_COMIS2: Number(values.comis2), 
-          ACN_COMIS3: Number(values.comis3), 
-          ACN_COMIS4: Number(values.comis4) 
-        };
-        this.itemsTabelaAcn.unshift(novoItem);
-      }
-      this.poNotification.success('Novo registro incluído com sucesso!');
-    } else {
-      if (this.abaTabelaAtiva === 'SBM') {
-        this.itemTabelaEmEdicao.BM_COMIS1 = Number(values.comis1);
-        this.itemTabelaEmEdicao.BM_COMIS2 = Number(values.comis2);
-        this.itemTabelaEmEdicao.BM_COMIS3 = Number(values.comis3);
-        this.itemTabelaEmEdicao.BM_COMIS4 = Number(values.comis4);
-      } else if (this.abaTabelaAtiva === 'ACY') {
-        this.itemTabelaEmEdicao.ACY_COMIS1 = Number(values.comis1);
-        this.itemTabelaEmEdicao.ACY_COMIS2 = Number(values.comis2);
-        this.itemTabelaEmEdicao.ACY_COMIS3 = Number(values.comis3);
-        this.itemTabelaEmEdicao.ACY_COMIS4 = Number(values.comis4);
-      } else if (this.abaTabelaAtiva === 'ACN') {
-        this.itemTabelaEmEdicao.ACN_GRPPRO = values.grupoProduto;
-        this.itemTabelaEmEdicao.ACN_COMIS1 = Number(values.comis1);
-        this.itemTabelaEmEdicao.ACN_COMIS2 = Number(values.comis2);
-        this.itemTabelaEmEdicao.ACN_COMIS3 = Number(values.comis3);
-        this.itemTabelaEmEdicao.ACN_COMIS4 = Number(values.comis4);
-      }
-      this.poNotification.success('Comissão atualizada com sucesso!');
+    if (this.abaTabelaAtiva === 'SBM') {
+      payload = {
+        BM_GRUPO: values.codigoChave,
+        BM_DESC: values.descricao,
+        BM_COMIS1: Number(values.comis1),
+        BM_COMIS2: Number(values.comis2),
+        BM_COMIS3: Number(values.comis3),
+        BM_COMIS4: Number(values.comis4)
+      };
+    } else if (this.abaTabelaAtiva === 'ACY') {
+      payload = {
+        ACY_GRPVEN: values.codigoChave,
+        ACY_DESCRI: values.descricao,
+        ACY_COMIS1: Number(values.comis1),
+        ACY_COMIS2: Number(values.comis2),
+        ACY_COMIS3: Number(values.comis3),
+        ACY_COMIS4: Number(values.comis4)
+      };
+    } else if (this.abaTabelaAtiva === 'ACN') {
+      payload = {
+        ACN_GRPPRO: values.grupoProduto,
+        ACN_CODREG: values.codigoChave,
+        ACN_ITEM: this.isIncluindoTabela ? '001' : (this.itemTabelaEmEdicao?.ACN_ITEM || '001'),
+        ACN_COMIS1: Number(values.comis1),
+        ACN_COMIS2: Number(values.comis2),
+        ACN_COMIS3: Number(values.comis3),
+        ACN_COMIS4: Number(values.comis4)
+      };
     }
 
-    this.itemTabelaEmEdicao = null;
-    this.isIncluindoTabela = false;
-    this.comissaoTabelaForm.reset();
+    if (this.isIncluindoTabela) {
+      this.comissaoGridService.postDadosTabela(this.abaTabelaAtiva, payload).pipe(take(1)).subscribe({
+        next: () => {
+          this.poNotification.success('Novo registro incluído com sucesso!');
+          this.cancelarEdicaoTabelaItem();
+          this.carregarDadosAbasTabela();
+        },
+        error: (err: any) => {
+          console.error('Erro Protheus POST:', err);
+          const mensagemServidor = err?.error?.message || err?.error?.errorMessage || 'Erro ao incluir o registro na API.';
+          this.poNotification.error(mensagemServidor);
+        }
+      });
+    } else {
+      this.comissaoGridService.putComissaoTabela(this.abaTabelaAtiva, payload).pipe(take(1)).subscribe({
+        next: () => {
+          this.poNotification.success('Comissões atualizadas com sucesso!');
+          this.cancelarEdicaoTabelaItem();
+          this.carregarDadosAbasTabela();
+        },
+        error: (err: any) => {
+          console.error('Erro Protheus PUT:', err);
+          const mensagemServidor = err?.error?.message || err?.error?.errorMessage || 'Erro ao atualizar as comissões na API.';
+          this.poNotification.error(mensagemServidor);
+        }
+      });
+    }
   }
 
   cancelarEdicaoTabelaItem(): void {
@@ -581,29 +677,7 @@ export class SellerManagementComponent implements OnInit {
   }
 
   salvarComissoesTabela(): void {
-    this.isLoadingTabelaComissao = true;
-
-    const itensParaSalvar = 
-      this.abaTabelaAtiva === 'SBM' ? this.itemsTabelaGrpProduto : 
-      this.abaTabelaAtiva === 'ACY' ? this.itemsTabelaAcy : this.itemsTabelaAcn;
-
-    const payload = {
-      tabela: this.abaTabelaAtiva,
-      vendedor: this.codigoVendedorAtual,
-      itens: itensParaSalvar
-    };
-
-    this.comissaoGridService.getDadosTabela(this.abaTabelaAtiva).pipe(take(1)).subscribe({
-      next: () => {
-        this.poNotification.success('Comissões da tabela atualizadas com sucesso!');
-        this.isLoadingTabelaComissao = false;
-        this.comissaoTabelaModal.close();
-      },
-      error: () => {
-        this.poNotification.error('Erro ao salvar as comissões da tabela.');
-        this.isLoadingTabelaComissao = false;
-      }
-    });
+    this.comissaoTabelaModal.close();
   }
 
   carregarComissoesVendedor(codigo: string): void {
@@ -613,14 +687,21 @@ export class SellerManagementComponent implements OnInit {
         if (data && data.ZZA_DESCV) {
           this.comissaoForm.patchValue({ ZZA_DESCV: data.ZZA_DESCV });
         }
+        this.atualizarProdutosNaoVinculados();
       },
-      error: () => {
+      error: (err: any) => {
         const nomeVendedor = this.viewSellerForm.get('name')?.value || '';
+        
+        if (err?.status !== 404) {
+          console.error('Erro ao carregar comissões do vendedor:', err);
+        }
+
         this.vendedorComissoesDados = {
           ZZA_CODV: codigo,
           ZZA_DESCV: nomeVendedor,
           itens: []
         };
+        this.atualizarProdutosNaoVinculados();
       }
     });
   }
@@ -676,22 +757,29 @@ export class SellerManagementComponent implements OnInit {
           this.poNotification.success('Comissão cadastrada com sucesso!');
           this.carregarComissoesVendedor(this.codigoVendedorAtual);
           this.resetarFormComissao(values.ZZA_DESCV);
+          setTimeout(() => this.atualizarProdutosNaoVinculados(), 200);
         },
         error: () => this.poNotification.error('Erro ao cadastrar comissão.')
       });
     }
   }
 
+  // Exclusão utilizando o modal elegante do PO UI (PoDialogService)
   excluirComissao(produtoCod: string): void {
-    if (confirm(`Deseja excluir a comissão do produto ${produtoCod}?`)) {
-      this.comissoesService.deletarRegistro(this.codigoVendedorAtual, produtoCod).subscribe({
-        next: () => {
-          this.poNotification.success('Comissão excluída com sucesso!');
-          this.carregarComissoesVendedor(this.codigoVendedorAtual);
-        },
-        error: () => this.poNotification.error('Erro ao excluir comissão.')
-      });
-    }
+    this.poDialog.confirm({
+      title: 'Confirmação de Exclusão',
+      message: `Deseja realmente excluir a comissão do produto ${produtoCod}?`,
+      confirm: () => {
+        this.comissoesService.deletarRegistro(this.codigoVendedorAtual, produtoCod).subscribe({
+          next: () => {
+            this.poNotification.success('Comissão excluída com sucesso!');
+            this.carregarComissoesVendedor(this.codigoVendedorAtual);
+            setTimeout(() => this.atualizarProdutosNaoVinculados(), 200);
+          },
+          error: () => this.poNotification.error('Erro ao excluir comissão.')
+        });
+      }
+    });
   }
 
   openModalForCreate(): void {
@@ -729,8 +817,8 @@ export class SellerManagementComponent implements OnInit {
   openModalForEdit(seller: Seller): void {
     this.isEditing = true;
     const formValues: any = {};
-    Object.keys(seller).forEach(key => {
-      const fieldObj = seller[key];
+    Object.keys(seller).forEach((key: string) => {
+      const fieldObj = (seller as any)[key];
       if (fieldObj && typeof fieldObj === 'object' && 'valor' in fieldObj) {
         formValues[key] = fieldObj.valor;
       } else {
@@ -752,13 +840,13 @@ export class SellerManagementComponent implements OnInit {
     const sourceName = seller.A3_NOME?.valor || seller.name;
 
     this.targetSellersList = this.sellers()
-      .filter(s => {
+      .filter((s: any) => {
         const cod = s.A3_COD?.valor || s.code;
         return cod !== sourceCode;
       })
-      .map(s => {
+      .map((s: any) => {
         const cod = s.A3_COD?.valor || s.code;
-        const nome = s.A3_NOME?.valor || s.name;
+        const nome = s.A3_NOME?.valor || seller.name; // Mantém fallback seguro
         return { label: `${cod} - ${nome}`, value: cod };
       });
 
@@ -789,7 +877,7 @@ export class SellerManagementComponent implements OnInit {
     if (this.sellerForm.invalid) return;
     const rawValues = this.sellerForm.getRawValue();
     const payload: any = {};
-    Object.keys(rawValues).forEach(key => { payload[key] = rawValues[key]; });
+    Object.keys(rawValues).forEach((key: string) => { payload[key] = rawValues[key]; });
     const codeVal = payload.A3_COD;
 
     if (this.isEditing) {

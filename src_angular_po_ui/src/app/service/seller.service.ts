@@ -8,11 +8,11 @@ import { Seller, SellerResponse } from '../interface/seller.model';
 })
 export class SellerService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:9595/rest/wsrestsa3/vendedores'; 
+  private apiUrl = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wsrestsa3/vendedores'; 
 
   private getHeaders() {
     return new HttpHeaders({
-      'Authorization': 'Basic ' + btoa('admin:xadrez392@D'),
+      'Authorization': 'Basic ' + btoa('totvs.everton:T@tvs2026'),
       'Content-Type': 'application/json'
     });
   }

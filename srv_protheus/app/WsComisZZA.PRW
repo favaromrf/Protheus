@@ -142,6 +142,11 @@ WSMETHOD POST CopiaPerfil WSSERVICE WsComisZZA
         Return .F.
     EndIf
 
+    cQuery := ""
+    cQuery := "DELETE " + RetSqlName("ZZA") + " WHERE ZZA_FILIAL = '" + FwxFilial("ZZA") + "'"
+    cQuery += "  AND ZZA_CODV = '" + cCodVendedor + "' "
+    TCSqlExec(cQuery)
+
     While (cAliasQry)->(!Eof())
         RecLock("ZZA", .T.)
             ZZA->ZZA_FILIAL := xFilial("ZZA")

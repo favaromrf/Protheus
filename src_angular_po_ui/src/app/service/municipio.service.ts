@@ -7,10 +7,10 @@ import { MunicipiosResponse } from '../interface/municipio.interface'; // Ajuste
   providedIn: 'root'
 })
 export class MunicipioService { // <-- Note a palavra 'export' aqui
-  private apiUrl = 'http://localhost:9595/rest/restmunic';
+  private apiUrl = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/restmunic';
   private getHeaders() {
     return new HttpHeaders({
-      'Authorization': 'Basic ' + btoa('admin:xadrez392@D'), // Substitua por sua credencial ou Token Bearer
+      'Authorization': 'Basic ' + btoa('totvs.everton:T@tvs2026'), // Substitua por sua credencial ou Token Bearer
       'Content-Type': 'application/json'
     });
   }

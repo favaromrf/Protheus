@@ -18,11 +18,11 @@ export interface VendedorComissao {
   providedIn: 'root'
 })
 export class ComissoesService {
-  private apiUrl = 'http://localhost:9595/rest/wscomiszza';
-  private apiUrl2 = 'http://localhost:9595/rest/wscomiszza/copia';
+  private apiUrl = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wscomiszza';
+  private apiUrl2 = 'http://dacolonia196730.protheus.cloudtotvs.com.br:10422/rest/wscomiszza/copia';
 
   private getHeaders(): HttpHeaders {
-    const credentials = btoa('admin:xadrez392@D');
+    const credentials = btoa('totvs.everton:T@tvs2026');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': 'Basic ' + credentials
